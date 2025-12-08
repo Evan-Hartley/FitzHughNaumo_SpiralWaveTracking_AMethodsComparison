@@ -1,10 +1,13 @@
 # FitzHughNaumo_SpiralWaveTracking_AMethodsComparison
+
 Compare and Contrast the Contour and Phase Identification Methods for Spiral Wave Identification using the FitzHugh-Nagumo Model
 
 ## Code instructions
 
 All togglable variables and adjustable parameters are located in the `main.cpp` file, you will want to adjust variables before compilation
+
 Highlights:
+
 - SimConstraints simulation.last_time: Tells the simulation how many milliseconds to run for
 - SimConstraints simulation.spiral: If true the simulation will apply a stimulous at the time specifiec by SimConstraints simulation.spiral_time in order to create a singular spiral wave
 - SimConstraints simulation.tip_track_JDM: If true, the program will track the approximate location of the spiral wave tip using the Jacobian Determinate Method
@@ -21,4 +24,4 @@ cmake ..
 cmake --build .
 ```
  
-  The .exe file will then be in a subfolder entitled `FitzHughNagumoModel/run/bin/`
+The .exe file will then be in a subfolder entitled `FitzHughNagumoModel/run/bin/`
