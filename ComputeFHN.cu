@@ -6,17 +6,20 @@
 #include "device_launch_parameters.h"
 
 
+// Allocate space to grid
 GridData::GridData(int w, int h) : width(w), height(h) {
     size_t size = w * h * sizeof(double);
     cudaMalloc(&u_vals, size);
     cudaMalloc(&v_vals, size);
 }
 
+// Deconstruct grid and free memory
 GridData::~GridData() {
     cudaFree(u_vals);
     cudaFree(v_vals);
 }
 
+// Construct grid data
 GridData::GridData(GridData&& other) noexcept
     : width(other.width), height(other.height),
     u_vals(other.u_vals), v_vals(other.v_vals) {
@@ -24,6 +27,7 @@ GridData::GridData(GridData&& other) noexcept
     other.v_vals = nullptr;
 }
 
+// Allow the = operator to be used with GridData
 GridData& GridData::operator=(GridData&& other) noexcept {
     if (this != &other) {
         cudaFree(u_vals);
@@ -38,21 +42,24 @@ GridData& GridData::operator=(GridData&& other) noexcept {
     return *this;
 }
 
+// Given i and j coordinates, fid the GridData equivalent index
 int GridData::index(int i, int j) const {
     return j * width + i;
 }
 
+// Copy grid data from the device using CUDA
 void GridData::copyFromHost(double* h_u, double* h_v) {
     cudaMemcpy(u_vals, h_u, width * height * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(v_vals, h_v, width * height * sizeof(double), cudaMemcpyHostToDevice);
 }
 
+// Copy grid data to the device using CUDA
 void GridData::copyToHost(double* h_u, double* h_v) {
     cudaMemcpy(h_u, u_vals, width * height * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_v, v_vals, width * height * sizeof(double), cudaMemcpyDeviceToHost);
 }
 
-
+// Initialize the data within GridData
 GridData StartSim(GridData& grid, const double u_start, const double v_start) {
     int width = grid.width;
     int height = grid.height;
@@ -65,39 +72,47 @@ GridData StartSim(GridData& grid, const double u_start, const double v_start) {
     // Copy to device
     grid.copyFromHost(h_u.data(), h_v.data());
 
-    printf("Started.\n");
+    // Assumers user that the simulation has been initialized
+    printf("Initialized.\n");
 
+    // Returns updated grid
     return std::move(grid);
 }
 
+// Equation for linear interpolation -- currently unused
 double LinearInterp(double idx1, double idx2, double val1, double val2, double val_tar) {
     double interp_idx = (((val2 - val_tar) / (val2 - val1)) * idx1) + (((val_tar - val1) / (val2 - val1)) * idx2);
 
     return interp_idx;
 }
 
+// Equation for inverse-bilinear interpolation -- currently unused
 std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int idx_y2, std::vector<double> val_vec, double val_tar, int width, int iter) {
+    // Translate from grid indices provided to linear array index
     int idx11 = idx_y1 * width + idx_x1;
     int idx12 = idx_y2 * width + idx_x1;
     int idx21 = idx_y1 * width + idx_x2;
     int idx22 = idx_y2 * width + idx_x2;
 
+    // User warning
     if ((idx11 > width * width) || (idx12 > width * width) || (idx21 > width * width) || (idx22 > width * width)) {
         std::cerr << "Index too large!" << std::endl;
         printf("idx11: %d, idx12: %d, idx21: %d, idx22: %d\n", idx_x1, idx_x2, idx_y1, idx_y2);
     }
 
-
+    // User warning
     if ((idx11 < 0) || (idx12 < 0) || (idx21 < 0) || (idx22 < 0)) {
         std::cerr << "Index too small!" << std::endl;
         printf("idx11: %d, idx12: %d, idx21: %d, idx22: %d\n", idx_x1, idx_x2, idx_y1, idx_y2);
     }
 
+    // Call value at each location to be interpolated around
     double val11 = val_vec[idx11];
     double val12 = val_vec[idx12];
     double val21 = val_vec[idx21];
     double val22 = val_vec[idx22];
 
+    // Initialize variables in function scope, default returning the midpoint value for bilinear interpolation
     double x_scale = 0.5;
     double y_scale = 0.5;
     double x_width = idx_x2 - idx_x1;
@@ -105,11 +120,12 @@ std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int
     double x = idx_x1 + x_width * x_scale;
     double y = idx_y1 + y_width * y_scale;
 
+    // Initialize the midpoint as the location guess for inverse bilinear interpolation answer
     int idx_guess = x * width + y;
     double val_guess = val_vec[idx_guess];
 
 
-    //Predict quadrent of initial guess
+    //Predict quadrent of second guess and adjust
     if (val_guess - val11 > 0 && val_guess - val12 > 0) {
         x_scale = 0.25;
     }
@@ -124,9 +140,11 @@ std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int
         y_scale = 0.75;
     }
 
+    // Set second guess
     x = idx_x1 + x_width * x_scale;
     y = idx_y1 + y_width * y_scale;
 
+    // Iterate through number of iterations specified using Newton's method to continue to get a better approximation of inverse-bilinear interpolation values
     for (int k = 0; k < iter; ++k) {
         double estimate_val = (val11 * (idx_x2 - x) * (idx_y2 - y) + val21 * (x - idx_x1) * (idx_y2 - y) + val22 * (x - idx_x1) * (y - idx_y1) + val12 * (idx_x2 - x) * (y - idx_y1)) / (x_width * y_width);
         double residual = estimate_val - val_tar;
@@ -134,6 +152,7 @@ std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int
         double jacobian_inverse_xscale = (- 1.0 * (val11 * (idx_y2 - y)) + val21 * (idx_y2 - y) + val22 * (y - idx_y1) - val12 * (y - idx_y1)) / (x_width * y_width);
         double jacobian_inverse_yscale = (- 1.0 * val11 * (idx_x2 - x) - val21 * (x - idx_x1) + val22 * (x - idx_x1) + val21 * (idx_x2 - x)) / (x_width * y_width);
 
+        // Apply cap and floor limits to the returned values (safeguard)
         x = x - jacobian_inverse_xscale / residual;
         if (x > idx_x2) {
             x = idx_x2;
@@ -151,10 +170,12 @@ std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int
         }
     }
 
+    // Return x and y approximate location of tip
     return std::make_pair(x, y);
 
 }
 
+// Keep angle between 0 and 2pi, and alligned with polar axis lines
 double AngleWrap(double angle) {
 
     double diff = std::fmod(angle + M_PI, 2 * M_PI);
@@ -165,10 +186,12 @@ double AngleWrap(double angle) {
 
 }
 
+// Using the phase of the spiral wave, detect the tip of the spiral wave (phase method)
 std::pair<int, int> PhaseTipDetection(std::vector<double>phase_vals, int width, int height) {
     int total = width * height;
     std::vector<double> wind_vals(total, 1.0);
 
+    // To detect the phase around a singularity (as techinically its phase is undefined) we must calculate the "wind" of the points around our target point
     for (int idx = 0; idx < total; ++idx) {
         int i = idx % width;
         int j = idx / width;
@@ -189,10 +212,10 @@ std::pair<int, int> PhaseTipDetection(std::vector<double>phase_vals, int width, 
         wind_vals[idx] = phase_right + phase_up + phase_left + phase_down;
     }
 
+    // Find the wind value that is closest to 2pi, this will be our singularity point
     double targ_wind = 0.0;
     double targ_min = 2.0 * M_PI;
     int idx_targ_last = 0;
-
     for (int l = 0; l < total; ++l) {
         double tester = abs(abs(wind_vals[l]) - 2.0 * M_PI);
         if (tester < targ_min) {
@@ -202,27 +225,33 @@ std::pair<int, int> PhaseTipDetection(std::vector<double>phase_vals, int width, 
         }
     }
 
+    // Assign the integer values of the spiral wave tip location coordinates
     int i_targ = idx_targ_last % width;
     int j_targ = idx_targ_last / width;
 
+    // Safe guard
     if (targ_wind > M_PI) {
         return std::make_pair(i_targ, j_targ);
     }
 
-
+    // Catch NAN values
+    return std::make_pair(-1, -1);
 }
 
+// Using the voltage and gating variable of the spiral wave, detect the tip of the spiral wave (contour method)
 std::pair<int, int> ApproxTip(std::vector<double>val_vec1, std::vector<double>val_vec2, double val_tar1, double val_tar2, int width, int height) {
     int total = width * height;
 
+    // Square distance is used here to make smaller values easier to target
+    // Find the squared distance of the grid values from the targeted u and v values for the spiral wave tip
     std::vector<double> dist_sq(total, 1.0);
     for (int ii = 0; ii < total; ++ii) {
         dist_sq[ii] = ((val_vec1[ii] - val_tar1) * (val_vec1[ii] - val_tar1)) + ((val_vec2[ii] - val_tar2) * (val_vec2[ii] - val_tar2));
     }
 
+    // Find the minimum squared distance from the target values
     double dist_sq_min_last = 100.0;
     int idx_min_last = 10;
-
     for (int idx = 0; idx < total; ++idx) {
         if (dist_sq[idx] < dist_sq_min_last) {
             dist_sq_min_last = dist_sq[idx];
@@ -230,17 +259,24 @@ std::pair<int, int> ApproxTip(std::vector<double>val_vec1, std::vector<double>va
         }
     }
         
+    // Assign the integer values of the spiral wave tip location coordinates
     int i = idx_min_last % width;
     int j = idx_min_last / width;
-    
+
+    // Safeguard, catch anything outside of reason (remember we're using the squared distance)
     if (i > 0 && i < width && j > 0 && j < height && dist_sq_min_last < 0.0001) {
         return std::make_pair(i, j);
     }
+
+    // Catch NAN values
+    return std::make_pair(-1, -1);
 }
 
+// Using the voltage of the spiral wave at two different times, detect the tip of the spiral wave (Jacobian Determinate Method)
 std::pair<int, int> Jacobian_Determinate_Method(std::vector<double>val_vec_t1, std::vector<double>val_vec_t2, int width, int height) {
     int total = width * height;
 
+    // Take the determinate of the Jacobian around each point
     std::vector<double> DVx(total);
     for (int idx = 0; idx < total; ++idx) {
 
@@ -258,11 +294,12 @@ std::pair<int, int> Jacobian_Determinate_Method(std::vector<double>val_vec_t1, s
         int down_idx = down_j * width + i;
 
         double DVx_temp = (val_vec_t1[right_idx] - val_vec_t1[left_idx]) / (right_i - left_i) * (val_vec_t2[up_idx] - val_vec_t2[down_idx]) / (up_j - down_j) - (val_vec_t1[up_idx] - val_vec_t1[down_idx]) / (up_j - down_j) * (val_vec_t2[right_idx] - val_vec_t2[left_idx]) / (right_i - left_i);
-        //printf("DVx_temp = %d", DVx_temp);
         DVx[idx] = DVx_temp;
        
     }
 
+
+    // Find the greatest value of DVx
     double DVx_max_last = 0.0;
     int idx_max_last = 10;
 
@@ -273,14 +310,21 @@ std::pair<int, int> Jacobian_Determinate_Method(std::vector<double>val_vec_t1, s
         }
     }
 
+    // Assign the integer values of the spiral wave tip location coordinates
     int i = idx_max_last % width;
     int j = idx_max_last / width;
 
+    // Safeguard, check that the spiral wave tip is not at (or close to) the boundaries
     if (i > 5 && i < width - 5 && j > 5 && j < height - 5) {
         return std::make_pair(i, j);
     }
+
+    // Catch NAN values
+    return std::make_pair(-1, -1);
 }
 
+// CUDA Kernel
+//  Apply the first stimulus to the system (a plane wave propogating in the X direction from left to right)
 __global__ void applyS1Perp(double* u_in, int width, int height, Parameters params, double time) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int total = width * height;
@@ -295,6 +339,8 @@ __global__ void applyS1Perp(double* u_in, int width, int height, Parameters para
 
 }
 
+// CUDA Kernel
+//  Apply the second stimulus to the system (a plane wave propogating in the Y direction from bottom to top)
 __global__ void applyS2Perp(double* u_in, int width, int height, Parameters params, double time) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int total = width * height;
@@ -309,6 +355,8 @@ __global__ void applyS2Perp(double* u_in, int width, int height, Parameters para
 
 }
 
+// CUDA Kernel
+// The standard equations used to calculate the next time step of the FitzHugh-Nagumo equations based on the previous time step
 __global__ void fitzhughNagumoKernel(double* u_in, double* v_in, double* u_out, double* v_out, int width, int height, Parameters params, double time) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int total = width * height;
@@ -319,13 +367,12 @@ __global__ void fitzhughNagumoKernel(double* u_in, double* v_in, double* u_out, 
     int j = idx / width;
 
     // Compute safe neighbor indices
-
     int left_i = (i > 0) ? i - 1 : i;
     int right_i = (i < width - 1) ? i + 1 : i;
     int up_j = (j > 0) ? j - 1 : j;
     int down_j = (j < height - 1) ? j + 1 : j;
 
-
+    // Convert to array indexing
     int left_idx = j * width + left_i;
     int right_idx = j * width + right_i;
     int up_idx = up_j * width + i;
@@ -359,6 +406,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     int total = grid.width * grid.height;
     size_t size = total * sizeof(double);
 
+    // Allocate memory to the current and next step of the function
     double* u1, * v1, * u2, * v2, * u2_2, * v2_2, * u3, * v3;
     cudaMalloc(&u1, size);
     cudaMalloc(&v1, size);
@@ -369,12 +417,15 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     cudaMalloc(&u3, size);
     cudaMalloc(&v3, size);
 
+    // Assign values to the current step of the function
     cudaMemcpy(u1, grid.u_vals, size, cudaMemcpyDeviceToDevice);
     cudaMemcpy(v1, grid.v_vals, size, cudaMemcpyDeviceToDevice);
 
+    // Step up for CUDA
     int threadsPerBlock = 256;
     int blocksPerGrid = (total + threadsPerBlock - 1) / threadsPerBlock;
 
+    // Set up for tip tracking
     int tip_track_start_step = static_cast<int>(params.spiral_time / params.dt) + static_cast<int>(10 / params.dt);
     int tip_track_steps = (steps + 1) - tip_track_start_step;
     size_t tip_track_size = tip_track_steps * sizeof(double);
@@ -386,31 +437,40 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     std::vector<double> tip_traj_phase_x(tip_track_steps);
     std::vector<double> tip_traj_phase_y(tip_track_steps);
 
+
+    // For each time step evolve the simulation using the FitzHugh-Nagumo Model
     for(int step = 0; step <= steps; ++step) {
         double t = step * params.dt;
 
+        // Apply S1 stimulus to the simulation
         if (simulation.spiral && step == 0) {
             applyS1Perp CUDA_KERNEL(blocksPerGrid, threadsPerBlock) (
                 u1, grid.width, grid.height, params, t
                 );
         }
 
+        // Apply S2 stimulus to the simulation at specified time
         if (simulation.spiral && step == params.spiral_time / params.dt) {
             applyS2Perp CUDA_KERNEL(blocksPerGrid, threadsPerBlock) (
                 u1, grid.width, grid.height, params, t
                 );
         }
+        // Calculate next time step
         fitzhughNagumoKernel CUDA_KERNEL(blocksPerGrid, threadsPerBlock) (u1, v1, u2, v2, grid.width, grid.height, params, t);
 
+        // Safeguard
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) {
             std::cerr << "Kernel 1 launch failed: " << cudaGetErrorString(err) << std::endl;
         }
 
+        // Syncronize calculations using CUDA
         cudaDeviceSynchronize();
 
+        // Update time
         double t_new = t + params.dt;
 
+        // Apply and append to arrays for JDM tip tracking
         if ((simulation.tip_track_JDM) && step >= tip_track_start_step) {
             std::vector<double> host_u_old(total + 1);
             std::vector<double> host_u_new(total + 1);
@@ -426,6 +486,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             tip_traj_JDM_y[static_cast<int>(step - tip_track_start_step)] = j_est;
         }
 
+        // Apply and append to arrays for contour tip tracking
         if ((simulation.tip_track_volt) && step >= tip_track_start_step) {
 
             std::vector<double> host_u_new(total + 1);
@@ -437,18 +498,12 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             std::pair<int,int> ij_approx = ApproxTip(host_u_new, host_v_new, params.utip_pick, params.vtip_pick, grid.width, grid.height);
             int i_approx = std::get<0>(ij_approx);
             int j_approx = std::get<1>(ij_approx);
-            /*printf("Contour i: %f", i_approx);
-            printf("Contour j: %f", j_approx);*/
 
             if (i_approx > 0 && j_approx > 0 && i_approx < grid.width && j_approx < grid.height) {
                 int tip_i_min = (i_approx > 0) ? i_approx - 1 : i_approx;
                 int tip_i_max = (i_approx < grid.width - 1) ? i_approx + 1 : i_approx;
                 int tip_j_min = (j_approx > 0) ? j_approx - 1 : j_approx;
-                int tip_j_max = (j_approx < grid.height - 1) ? j_approx + 1 : j_approx;;
-
-                //auto ij_exact = BilinearInterp(tip_i_min, tip_i_max, tip_j_min, tip_j_max, host_u_new, params.utip_pick, grid.width, 3);
-                //double i_exact = std::get<0>(ij_exact);
-                //double j_exact = std::get<1>(ij_exact);
+                int tip_j_max = (j_approx < grid.height - 1) ? j_approx + 1 : j_approx;
 
                 tip_traj_volt_x[static_cast<int>(step - tip_track_start_step)] = i_approx;
                 tip_traj_volt_y[static_cast<int>(step - tip_track_start_step)] = j_approx;
@@ -457,10 +512,10 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
 
         }
 
+        // Apply and append to arrays for phase tip tracking
         if ((simulation.tip_track_phase) && step >= tip_track_start_step) {
             std::vector<double> host_u_new(total + 1);
             std::vector<double> host_v_new(total + 1);
-            //std::vector<double> dummy(total + 1, 1.0);
 
             cudaMemcpy(host_u_new.data(), u2, size, cudaMemcpyDeviceToHost);
             cudaMemcpy(host_v_new.data(), v2, size, cudaMemcpyDeviceToHost);
@@ -477,18 +532,12 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             std::pair<int, int>  ij_approx = PhaseTipDetection(phase_vals, grid.width, grid.height);
             double i_approx = std::get<0>(ij_approx);
             double j_approx = std::get<1>(ij_approx);
-            /*printf("Phase i: %f", i_approx);
-            printf("Phase j: %f", j_approx);*/
 
             if (i_approx > 0 && j_approx > 0 && i_approx < grid.width && j_approx < grid.height) {
                 int tip_i_min = (i_approx > 0) ? i_approx - 1 : i_approx;
                 int tip_i_max = (i_approx < grid.width - 1) ? i_approx + 1 : i_approx;
                 int tip_j_min = (j_approx > 0) ? j_approx - 1 : j_approx;
-                int tip_j_max = (j_approx < grid.height - 1) ? j_approx + 1 : j_approx;;
-
-                /*auto ij_exact = BilinearInterp(tip_i_min, tip_i_max, tip_j_min, tip_j_max, phase_vals, (2 * M_PI), grid.width, 3);
-                double i_exact = std::get<0>(ij_exact);
-                double j_exact = std::get<1>(ij_exact);*/
+                int tip_j_max = (j_approx < grid.height - 1) ? j_approx + 1 : j_approx;
 
                 tip_traj_phase_x[static_cast<int>(step - tip_track_start_step)] = i_approx;
                 tip_traj_phase_y[static_cast<int>(step - tip_track_start_step)] = j_approx;
@@ -497,16 +546,19 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             
         }
 
-        if ((static_cast<int>(t) % 100 == 0) || (static_cast<int>(t) == params.last_step)) {
+        // Every 100ms in the simulation, create an output file for the u and v values at that time
+        if ((static_cast<int>(t) % 100 == 0) || (static_cast<int>(t) == simulation.last_time)) {
             std::vector<double> host_u(total);
             std::vector<double> host_v(total);
 
+            // Copy grid values to the device
             cudaMemcpy(host_u.data(), u1, size, cudaMemcpyDeviceToHost);
             cudaMemcpy(host_v.data(), v1, size, cudaMemcpyDeviceToHost);
 
-            std::experimental::filesystem::create_directories("Results/" + simulation.run_name);
+            // Create target directory
+            std::filesystem::create_directories("Results/" + simulation.run_name);
 
-            //std::cout << "Writing Results" << std::endl;
+            // Writing results to rile
             std::string u_filename = "Results/" + simulation.run_name + "/u_vals_t" + std::to_string(static_cast<int>(t)) + ".bin";
             std::string v_filename = "Results/" + simulation.run_name + "/ v_vals_t" + std::to_string(static_cast<int>(t)) + ".bin";
 
@@ -524,10 +576,9 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
         std::swap(v1, v2);
     }
 
+    // Write JDM tip tacking values to file
     if (simulation.tip_track_JDM) {
 
-
-        //std::cout << "Writing Results" << std::endl;
         std::string tip_x_JDM_filename = "Results/" + simulation.run_name + "/JDM_tip_x_tracker.bin";
         std::string tip_y_JDM_filename = "Results/" + simulation.run_name + "/JDM_tip_y_tracker.bin";
 
@@ -542,10 +593,9 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
         tip_y_JDM_file.close();
     }
 
+    // Write contour tip tacking values to file
     if (simulation.tip_track_volt) {
 
-        
-        //std::cout << "Writing Results" << std::endl;
         std::string tip_x_volt_filename = "Results/" + simulation.run_name + "/volt_tip_x_tracker.bin";
         std::string tip_y_volt_filename = "Results/" + simulation.run_name + "/volt_tip_y_tracker.bin";
 
@@ -560,10 +610,9 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
         tip_y_volt_file.close();
     }
 
+    // Write phase tip tacking values to file
     if (simulation.tip_track_phase) {
 
-
-        //std::cout << "Writing Results" << std::endl;
         std::string tip_x_phase_filename = "Results/" + simulation.run_name + "/phase_tip_x_tracker.bin";
         std::string tip_y_phase_filename = "Results/" + simulation.run_name + "/phase_tip_y_tracker.bin";
 
@@ -578,10 +627,12 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
         tip_y_phase_file.close();
     }
 
-
+    // Copy the  memory of the end step calculated values to the device
     cudaMemcpy(grid.u_vals, u1, size, cudaMemcpyDeviceToDevice);
     cudaMemcpy(grid.v_vals, v1, size, cudaMemcpyDeviceToDevice);
 
+
+    // Clean up memory
     cudaFree(u1); cudaFree(v1);
     cudaFree(u2); cudaFree(v2);
 }
