@@ -15,7 +15,19 @@ Highlights:
 - SimConstraints simulation.tip_track_JDM: If true, the program will track the approximate location of the spiral wave tip on the estimated value phase angle of the wave about the point Parameters params.utip_pick and Parameters params.vtip_pick.
 - SimConstraints.run_name: Stores the title of your simulation, your output files will be stored in a file sharing this name
 
+## Output Files
+
+This code outputs .bin files for the u and v state values of the FitzHugh-Nagumo Model accross the simulated region every 100ms. If tip-tracking of any kind is toggled to true there is an additional output of the x and y locations of the tip within the region, NAN values in this file are reported as x=-1 and y=-1. Included in this repository are two python codes used to visualize the results. `EvolvingPlot.py` gerenates a .gif file of the simulation which shows the evoluution of the wave in the simulated region. `TipTrajectory.py` reads the outputs containing the (x,y) coordinates of the spiral wave tip and then plots the results on a grid. Both python files need to have the same dimension variable values as the simulation in order to function properly.
+
 ## Compilation instructions
+
+**Both setup options require cuda and a GPU**
+
+If you have ncvv installed run the following command in the repository directory:
+```
+nvcc main.cpp ComputeFHN.cu FHNpch.cpp -o fhnModel.exe
+```
+**-OR-**
 
 Run the following commands in the repository directory:
  ```
