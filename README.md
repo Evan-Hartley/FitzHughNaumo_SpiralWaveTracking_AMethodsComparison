@@ -21,7 +21,7 @@ This code outputs .bin files for the u and v state values of the FitzHugh-Nagumo
 
 ## Compilation instructions
 
-**Both setup options require cuda and a GPU**
+**Both setup options require CUDA and a GPU**
 
 If you have ncvv installed run the following command in the repository directory:
 ```
