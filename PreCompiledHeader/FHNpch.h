@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <stdexcept>
 #include <cmath>
 #include <memory>
@@ -30,3 +30,5 @@
 #include <limits> 
 #include <tuple>
 #include <complex>
+#include <array>
+#include <functional>
