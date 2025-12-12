@@ -38,6 +38,6 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=1000, blit=True)
 
 # Save animation
-ani.save(results_folder_name + output_name + ".gif", writer='pillow')
+ani.save("../Figures/" + output_name + ".gif", writer='pillow')
 print("Saved gif")
 plt.close()
