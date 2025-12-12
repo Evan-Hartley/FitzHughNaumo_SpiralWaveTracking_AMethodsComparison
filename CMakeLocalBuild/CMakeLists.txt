@@ -15,10 +15,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY run)
 
 
 add_library(fhnModel_lib STATIC
-  ../FHNpch.cpp
-  ../FHNpch.h
-  ../ComputeFHN.cuh
-  ../StructureManagment.h
+  ../PreCompiledHeader/FHNpch.cpp
+  ../PreCompiledHeader/FHNpch.h
+  ../CUDAfiles/ComputeFHN.cuh
+  ../Structures/StructureManagment.h
   )
 
 
@@ -26,7 +26,7 @@ set_target_properties( fhnModel_lib
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
                       )
 
-add_executable(fhnModel main.cpp ComputeFHN.cu)
+add_executable(fhnModel main.cpp CUDAfiles/ComputeFHN.cu)
 
 target_link_libraries(fhnModel PRIVATE fhnModel_lib)
 
