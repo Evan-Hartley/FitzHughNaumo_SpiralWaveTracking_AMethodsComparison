@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import glob
+import os
 
 # Change variables to match Simulation and Output parameters
 grid_size = (100, 100)
@@ -38,6 +39,14 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=1000, blit=True)
 
 # Save animation
+try:
+    os.mkdir("../Figures/") # Creates a single directory
+except FileExistsError:
+    print(f"Directory already exists.\n")
+except PermissionError:
+    print(f"Permission denied: Unable to create directory.\n")
+except Exception as e:
+    print(f"An error occurred: {e}\n")
 ani.save("../Figures/" + output_name + ".gif", writer='pillow')
 print("Saved gif")
 plt.close()

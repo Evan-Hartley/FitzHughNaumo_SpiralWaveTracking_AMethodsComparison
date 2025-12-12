@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 
 # Adjust variables to match run
@@ -26,7 +27,7 @@ if toggle_JDM:
     plot_y_JDM = []
     
     for ii in range(len(data_x_JDM)):
-        if (ii >= delay and data_x_JDM[ii] != -1 and data_x_JDM[ii] != -1):
+        if (ii >= delay and data_x_JDM[ii] != -1 and data_y_JDM[ii] != -1):
             plot_x_JDM.append(data_x_JDM[ii])
             plot_y_JDM.append(data_y_JDM[ii])
             
@@ -37,18 +38,18 @@ if toggle_contour:
     filename_x_volt = results_folder_name + "volt_tip_x_tracker.bin"
     filename_y_volt  = results_folder_name + "volt_tip_y_tracker.bin"
     
-    data_x_volt  = np.fromfile(filename_x_volt , dtype=np.int32)
-    data_y_volt = np.fromfile(filename_y_volt , dtype=np.int32)
+    data_x_volt  = np.fromfile(filename_x_volt , dtype=np.double)
+    data_y_volt = np.fromfile(filename_y_volt , dtype=np.double)
     
     plot_x_volt = []
     plot_y_volt = []
     
     for ii in range(len(data_x_volt)):
-        if (ii >= delay and data_x_volt[ii] != -1 and data_x_volt[ii] != -1):
-            plot_x_JDM.append(data_x_volt[ii])
-            plot_y_JDM.append(data_y_volt[ii])
+        if (ii >= delay and data_x_volt[ii] != -1 and data_y_volt[ii] != -1 and data_x_volt[ii] != 0 and data_y_volt[ii] != 0 and data_x_volt[ii] < grid_size[0]  and data_y_volt[ii] < grid_size[1]):
+            plot_x_volt.append(data_x_volt[ii])
+            plot_y_volt.append(data_y_volt[ii])
             
-    ax.plot(plot_x_volt,plot_y_volt, color = 'b', label = 'Contour Method')
+    ax.plot(plot_x_volt,plot_y_volt, color = 'k', alpha = 0.4, label = 'Contour Method')
     
 # If toggle_phase is true, read data from files and plot the data (ignoring dummy values)
 if toggle_phase:
@@ -62,7 +63,7 @@ if toggle_phase:
     plot_y_phase = []
 
     for ii in range(len(data_x_phase)):
-        if (ii >= delay and data_x_phase[ii] != -1 and data_x_phase[ii] != -1):
+        if (ii >= delay and data_x_phase[ii] != -1 and data_y_phase[ii] != -1):
             plot_x_phase.append(data_x_phase[ii])
             plot_y_phase.append(data_y_phase[ii])
 
@@ -74,6 +75,15 @@ ax.set_xlabel('x-space', fontsize = 24)
 ax.set_ylabel('y-space', fontsize = 24)
 ax.tick_params(labelsize = 16)
 ax.legend(loc="upper right", bbox_to_anchor=(-.15, 1), fontsize=16, borderaxespad=0.)
+
+try:
+    os.mkdir("../Figures/") # Creates a single directory
+except FileExistsError:
+    print(f"Directory already exists.\n")
+except PermissionError:
+    print(f"Permission denied: Unable to create directory.\n")
+except Exception as e:
+    print(f"An error occurred: {e}\n")
 plt.savefig("../Figures/" + output_name + ".png", bbox_inches='tight')
 print("Saved graph")
 plt.close()
