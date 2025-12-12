@@ -44,4 +44,4 @@ The `fhnModel.exe` file will then be in a subfolder entitled `build/run/`
 
 ## Running the Code
 
-This code is designed to be run on the Georgia Tech PACE cluster, but can be run on any computer with a NVIDIA GPU and CUDA installed. To run locally, either open the constructed `fhnModel.exe` file or use your terminal to run the program by navigating to the `fhnModel.exe` and run either the `start fhnModel.exe` command (Windows) or `wine fhnModel.exe` command (Linux and macOS).
+This code is designed to be run on the Georgia Tech PACE cluster, but can be run on any computer with a NVIDIA GPU and CUDA installed. To run locally, either open the constructed `fhnModel.exe` file or use your terminal to run the program by navigating to the `fhnModel.exe` and run either the `start fhnModel.exe` command (Windows) or the `wine fhnModel.exe` command (Linux and macOS).
