@@ -476,6 +476,7 @@ __global__ void fitzhughNagumoKernel(double* u_in, double* v_in, double* u_out, 
 /**
  * Wrapper function for the CUDA kernel function.
  */
+ // Progress the FitzHugh-Nagumo model according to simulation specifications
 void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimConstraints& simulation, int steps) {
     int total = grid.width * grid.height;
     size_t size = total * sizeof(double);
@@ -495,7 +496,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     cudaMemcpy(u1, grid.u_vals, size, cudaMemcpyDeviceToDevice);
     cudaMemcpy(v1, grid.v_vals, size, cudaMemcpyDeviceToDevice);
 
-    // Step up for CUDA
+    // Set up for CUDA
     int threadsPerBlock = 256;
     int blocksPerGrid = (total + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -515,7 +516,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     std::array<double, 2> singularity_phase = locate_tip_phase(params);
     double u_singularity = singularity_phase[0];
     double v_singularity = singularity_phase[1];
-    printf("u_sing = %f, v_sing = %f", u_singularity, v_singularity);
+    printf("u_sing = %f, v_sing = %f\n", u_singularity, v_singularity);
 
 
     // For each time step evolve the simulation using the FitzHugh-Nagumo Model
@@ -535,6 +536,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
                 u1, grid.width, grid.height, params, t
                 );
         }
+
         // Calculate next time step
         fitzhughNagumoKernel CUDA_KERNEL(blocksPerGrid, threadsPerBlock) (u1, v1, u2, v2, grid.width, grid.height, params, t);
 
@@ -638,7 +640,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             // Create target directory
             std::filesystem::create_directories("Results/" + simulation.run_name);
 
-            // Writing results to rile
+            // Writing results to file
             std::string u_filename = "Results/" + simulation.run_name + "/u_vals_t" + std::to_string(static_cast<int>(t)) + ".bin";
             std::string v_filename = "Results/" + simulation.run_name + "/ v_vals_t" + std::to_string(static_cast<int>(t)) + ".bin";
 
@@ -652,6 +654,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             vfile.close();
         }
 
+        // Swap in and out vectors to continue to progress stepping function
         std::swap(u1, u2);
         std::swap(v1, v2);
     }
