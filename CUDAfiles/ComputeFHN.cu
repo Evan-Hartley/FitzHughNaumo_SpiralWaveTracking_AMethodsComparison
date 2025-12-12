@@ -1,5 +1,5 @@
-﻿#include "FHNpch.h"
-#include "StructureManagment.h"
+﻿#include "../PreCompiledHeader/FHNpch.h"
+#include "../Structures/StructureManagment.h"
 #include "./ComputeFHN.cuh"
 
 #include "cuda_runtime.h"
