@@ -507,7 +507,6 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     int tip_track_start_step = static_cast<int>(params.spiral_time / params.dt) + static_cast<int>(10 / params.dt);
     int tip_track_steps = (steps + 1) - tip_track_start_step;
     size_t tip_track_size = tip_track_steps * sizeof(double);
-    size_t tip_track_size_est = tip_track_steps * sizeof(int);
     std::vector<int> tip_traj_JDM_x(tip_track_steps);
     std::vector<int> tip_traj_JDM_y(tip_track_steps);
     std::vector<double> tip_traj_volt_x(tip_track_steps);
@@ -666,8 +665,8 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
         std::ofstream tip_x_JDM_file(tip_x_JDM_filename, std::ios::binary);
         std::ofstream tip_y_JDM_file(tip_y_JDM_filename, std::ios::binary);
 
-        tip_x_JDM_file.write(reinterpret_cast<const char*>(&tip_traj_JDM_x[0]), tip_track_size_est);
-        tip_y_JDM_file.write(reinterpret_cast<const char*>(&tip_traj_JDM_y[0]), tip_track_size_est);
+        tip_x_JDM_file.write(reinterpret_cast<const char*>(&tip_traj_JDM_x[0]), tip_track_size);
+        tip_y_JDM_file.write(reinterpret_cast<const char*>(&tip_traj_JDM_y[0]), tip_track_size);
 
 
         tip_x_JDM_file.close();
