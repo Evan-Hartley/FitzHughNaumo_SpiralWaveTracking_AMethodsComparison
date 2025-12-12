@@ -1,12 +1,12 @@
 #pragma once
 
 struct Parameters {
-    int nx, ny, last_step, spiral_time;
+    int last_step, spiral_time;
     double D_u, eps, a, b, dt, dx;
     double utip_pick, vtip_pick;
 
     Parameters()
-        : nx(0), ny(0), D_u(0.0), eps(0.0),
+        : D_u(0.0), eps(0.0),
         a(0.0f), b(0.0), dt(0.0), dx(0.0),
         utip_pick(0.0), vtip_pick(0.0),
         last_step(0), spiral_time(0) {}
