@@ -36,7 +36,7 @@ std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int
 
 std::array<double, 2> base_equations(const std::array<double, 2>& vars, const Parameters& params);
 
-std::array<double, 2> newton_solve(std::function<std::array<double, 2>(const std::array<double, 2>&)> f, std::array<double, 2> x0, double tol = 1e-10, int max_iter = 50);
+std::array<double, 2> newton_solve(std::function<std::array<double, 2>(const std::array<double, 2>&)> f, std::array<double, 2> x0, double tol = 1e-3, int max_iter = 500);
 
 std::array<double, 2> locate_tip_phase(const Parameters& params);
 

@@ -200,19 +200,16 @@ std::array<double, 2> base_equations(const std::array<double, 2>& vars,
 }
 
 // 2D Newton solver
-std::array<double, 2> newton_solve(
-    std::function<std::array<double, 2>(const std::array<double, 2>&)> f,
-    std::array<double, 2> x0,
-    double tol = 1e-10,
-    int max_iter = 50)
-{
+std::array<double, 2> newton_solve(std::function<std::array<double, 2>(const std::array<double, 2>&)> f, std::array<double, 2> x0, double tol, int max_iter) {
     const double h = 1e-6; // finite difference step
+
+    std::array<double, 2> F_last = { 1.0, 1.0 };
 
     for (int iter = 0; iter < max_iter; iter++) {
         auto F = f(x0);
 
         // Check convergence
-        if (std::abs(F[0]) < tol && std::abs(F[1]) < tol)
+        if (std::abs(F[0] - F_last[0]) < tol && std::abs(F[1] - F_last[1]) < tol)
             return x0;
 
         // Approximate Jacobian numerically
@@ -243,6 +240,13 @@ std::array<double, 2> newton_solve(
 
         x0[0] += dx0;
         x0[1] += dx1;
+
+        x0[0] = (x0[0] < 0.0) ? 0.0 - x0[0] : x0[0];
+        x0[0] = (x0[0] < 0.01) ? x0[0] + 0.25 : x0[0];
+        x0[1] = (x0[1] < 0.0) ? 0.0 - x0[1] : x0[1];
+        x0[1] = (x0[1] < 0.001) ? x0[1] + 0.1 : x0[1];
+
+        F_last = F;
     }
 
     std::cerr << "Newton solver did not converge\n";
@@ -256,7 +260,7 @@ std::array<double, 2> locate_tip_phase(const Parameters& params)
         return base_equations(x, params);
         };
 
-    std::array<double, 2> initial_guess = { 1.0, 0.0 };
+    std::array<double, 2> initial_guess = { 0.40, 0.07 };
     return newton_solve(func, initial_guess);
 }
 
@@ -316,19 +320,18 @@ std::pair<int, int> PhaseTipDetection(std::vector<double>phase_vals, int width, 
 std::pair<int, int> ApproxTip(std::vector<double>val_vec1, std::vector<double>val_vec2, double val_tar1, double val_tar2, int width, int height) {
     int total = width * height;
 
-    // Square distance is used here to make smaller values easier to target
     // Find the squared distance of the grid values from the targeted u and v values for the spiral wave tip
-    std::vector<double> dist_sq(total, 1.0);
+    std::vector<double> dist_abs(total);
     for (int ii = 0; ii < total; ++ii) {
-        dist_sq[ii] = ((val_vec1[ii] - val_tar1) * (val_vec1[ii] - val_tar1)) + ((val_vec2[ii] - val_tar2) * (val_vec2[ii] - val_tar2));
+        dist_abs[ii] = (abs(val_vec1[ii] - val_tar1)) + (abs(val_vec2[ii] - val_tar2));
     }
 
     // Find the minimum squared distance from the target values
-    double dist_sq_min_last = 100.0;
+    double dist_abs_min_last = 100.0;
     int idx_min_last = 10;
     for (int idx = 0; idx < total; ++idx) {
-        if (dist_sq[idx] < dist_sq_min_last) {
-            dist_sq_min_last = dist_sq[idx];
+        if (dist_abs[idx] < dist_abs_min_last) {
+            dist_abs_min_last = dist_abs[idx];
             idx_min_last = idx;
         }
     }
@@ -337,8 +340,8 @@ std::pair<int, int> ApproxTip(std::vector<double>val_vec1, std::vector<double>va
     int i = idx_min_last % width;
     int j = idx_min_last / width;
 
-    // Safeguard, catch anything outside of reason (remember we're using the squared distance)
-    if (i > 0 && i < width && j > 0 && j < height && dist_sq_min_last < 0.0001) {
+    // Safeguard, catch anything outside of reason
+    if (i > 0 && i < width && j > 0 && j < height && dist_abs_min_last > 0.0 && dist_abs_min_last < 0.01) {
         return std::make_pair(i, j);
     }
 
@@ -582,11 +585,6 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
             int j_approx = std::get<1>(ij_approx);
 
             if (i_approx > 0 && j_approx > 0 && i_approx < grid.width && j_approx < grid.height) {
-                int tip_i_min = (i_approx > 0) ? i_approx - 1 : i_approx;
-                int tip_i_max = (i_approx < grid.width - 1) ? i_approx + 1 : i_approx;
-                int tip_j_min = (j_approx > 0) ? j_approx - 1 : j_approx;
-                int tip_j_max = (j_approx < grid.height - 1) ? j_approx + 1 : j_approx;
-
                 tip_traj_volt_x[static_cast<int>(step - tip_track_start_step)] = i_approx;
                 tip_traj_volt_y[static_cast<int>(step - tip_track_start_step)] = j_approx;
             }
