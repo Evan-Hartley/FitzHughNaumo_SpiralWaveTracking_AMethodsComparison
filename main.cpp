@@ -7,6 +7,8 @@ int main() {
 
     // Adjustable simulation variables
     SimConstraints simulation;
+    simulation.nx = 100;
+    simulation.ny = 100;
     simulation.dx = 1;
     simulation.dt = 0.2;
     simulation.last_time = 3000;
@@ -28,8 +30,8 @@ int main() {
     params.b = 0.5;
     params.last_step = static_cast<int>(simulation.last_time / params.dt);
     params.spiral_time = simulation.spiral_time;
-    params.utip_pick = 0.3980589461367867;              // User guess for phase singularity's u value
-    params.vtip_pick = 0.0714227261894926;              // User guess for phase singularity's v value
+    params.utip_pick = 0.40;              // User guess for phase singularity's u value
+    params.vtip_pick = 0.07;              // User guess for phase singularity's v value
 
 
     // Check for parameter cohesion
@@ -38,7 +40,7 @@ int main() {
     }
        
     // Create and fill a data grid of intial u and v conditions
-    const int width = 100, height = 100;
+    const int width = simulation.nx, height = simulation.ny;
     GridData grid = GridData(width, height);
     grid = StartSim(grid, 0.0, 0.0);
 
@@ -57,5 +59,4 @@ int main() {
 
     //End
     return 0;
-
 }
