@@ -17,7 +17,7 @@ Highlights:
 
 ## Output Files
 
-This code outputs .bin files for the u and v state values of the FitzHugh-Nagumo Model accross the simulated region every 100ms. If tip-tracking of any kind is toggled to true there is an additional output of the x and y locations of the tip within the region, NAN values in this file are reported as x=-1 and y=-1. Included in this repository are two python codes used to visualize the results. `EvolvingPlot.py` gerenates a .gif file of the simulation which shows the evoluution of the wave in the simulated region. `TipTrajectory.py` reads the outputs containing the (x,y) coordinates of the spiral wave tip and then plots the results on a grid. Both python files need to have the same dimension variable values as the simulation in order to function properly.
+This code outputs .bin files for the u and v state values of the FitzHugh-Nagumo Model accross the simulated region every 100ms. If tip-tracking of any kind is toggled to true there is an additional output of the x and y locations of the tip within the region, NAN values in this file are reported as x=-1 and y=-1. Included in this repository are two python codes used to visualize the results. `EvolvingPlot.py` gerenates a .gif file of the simulation which shows the evoluution of the wave in the simulated region. `TipTrajectory.py` reads the outputs containing the (x,y) coordinates of the spiral wave tip and then plots the results on a grid. Both python files need to have the same dimension variable values as the simulation in order to function properly. Each file is designed to be run in terminal in the `ResultingVisuals` directory using the command `python <filename>.py`
 
 ## Compilation instructions
 
@@ -40,4 +40,8 @@ cmake ..
 cmake --build .
 ```
  
-The .exe file will then be in a subfolder entitled `build/run/`
+The `fhnModel.exe` file will then be in a subfolder entitled `build/run/`
+
+## Running the Code
+
+This code is designed to be run on the Georgia Tech PACE cluster, but can be run on any computer with a NVIDIA GPU and CUDA installed. To run locally, either open the constructed `fhnModel.exe` file or use your terminal to run the program by navigating to the `fhnModel.exe` and run either the `start fhnModel.exe` command (Windows) or `wine fhnModel.exe` command (Linux and macOS).
