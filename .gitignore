@@ -1,0 +1,11 @@
+# Directories
+.vs/
+Results
+build
+Figures
+
+# Files
+fhnModel.exe
+FitzHughNagumoModel.vcxproj
+FitzHughNagumoModel.vcxproj.filters
+FitzHughNagumoModel.vcxproj.user
