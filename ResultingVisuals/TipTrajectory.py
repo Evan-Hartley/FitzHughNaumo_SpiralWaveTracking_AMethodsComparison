@@ -27,7 +27,7 @@ if toggle_JDM:
     plot_y_JDM = []
     
     for ii in range(len(data_x_JDM)):
-        if (ii >= delay and data_x_JDM[ii] != -1 and data_y_JDM[ii] != -1):
+        if (ii >= delay and data_x_JDM[ii] != -1 and data_y_JDM[ii] != -1 and data_x_JDM[ii] != 0 and data_y_JDM[ii] != 0 and data_x_JDM[ii] < grid_size[0]  and data_y_JDM[ii] < grid_size[1]):
             plot_x_JDM.append(data_x_JDM[ii])
             plot_y_JDM.append(data_y_JDM[ii])
             
@@ -63,7 +63,7 @@ if toggle_phase:
     plot_y_phase = []
 
     for ii in range(len(data_x_phase)):
-        if (ii >= delay and data_x_phase[ii] != -1 and data_y_phase[ii] != -1):
+        if (ii >= delay and data_x_phase[ii] != -1 and data_y_phase[ii] != -1 and data_x_phase[ii] != 0 and data_y_phase[ii] != 0 and data_x_phase[ii] < grid_size[0]  and data_y_phase[ii] < grid_size[1]):
             plot_x_phase.append(data_x_phase[ii])
             plot_y_phase.append(data_y_phase[ii])
 
