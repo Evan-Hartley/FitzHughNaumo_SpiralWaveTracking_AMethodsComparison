@@ -34,6 +34,12 @@ double LinearInterp(double idx1, double idx2, double val1, double val2, double v
 
 std::pair<double, double> BilinearInterp(int idx_x1, int idx_x2, int idx_y1, int idx_y2, std::vector<double> val_vec1, double uval_tar, int width, int iter);
 
+std::array<double, 2> base_equations(const std::array<double, 2>& vars, const Parameters& params);
+
+std::array<double, 2> newton_solve(std::function<std::array<double, 2>(const std::array<double, 2>&)> f, std::array<double, 2> x0, double tol = 1e-10, int max_iter = 50);
+
+std::array<double, 2> locate_tip_phase(const Parameters& params);
+
 double AngleWrap(double angle);
 
 std::pair<int, int> PhaseTipDetection(std::vector<double>phase_vals, int width, int height);

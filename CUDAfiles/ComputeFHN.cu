@@ -48,13 +48,13 @@ int GridData::index(int i, int j) const {
 }
 
 // Copy grid data from the device using CUDA
-void GridData::copyFromHost(double* h_u, double* h_v) {
+void GridData::copyFromHost(double* h_u, double* h_v) const {
     cudaMemcpy(u_vals, h_u, width * height * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(v_vals, h_v, width * height * sizeof(double), cudaMemcpyHostToDevice);
 }
 
 // Copy grid data to the device using CUDA
-void GridData::copyToHost(double* h_u, double* h_v) {
+void GridData::copyToHost(double* h_u, double* h_v) const {
     cudaMemcpy(h_u, u_vals, width * height * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_v, v_vals, width * height * sizeof(double), cudaMemcpyDeviceToHost);
 }
@@ -184,6 +184,80 @@ double AngleWrap(double angle) {
     }
     return diff - M_PI;
 
+}
+
+// Create function with base FitzHugh-Nagumo equations to use later
+std::array<double, 2> base_equations(const std::array<double, 2>& vars,
+    const Parameters& params)
+{
+    double u = vars[0];
+    double v = vars[1];
+
+    double du = u * (1.0 - u) * (u - params.a) - v;
+    double dv = params.eps * ((params.b * u) - v);
+
+    return { du, dv };
+}
+
+// 2D Newton solver
+std::array<double, 2> newton_solve(
+    std::function<std::array<double, 2>(const std::array<double, 2>&)> f,
+    std::array<double, 2> x0,
+    double tol = 1e-10,
+    int max_iter = 50)
+{
+    const double h = 1e-6; // finite difference step
+
+    for (int iter = 0; iter < max_iter; iter++) {
+        auto F = f(x0);
+
+        // Check convergence
+        if (std::abs(F[0]) < tol && std::abs(F[1]) < tol)
+            return x0;
+
+        // Approximate Jacobian numerically
+        std::array<double, 2> xh;
+
+        // dF/du
+        xh = x0; xh[0] += h;
+        auto F_u = f(xh);
+
+        // dF/dv
+        xh = x0; xh[1] += h;
+        auto F_v = f(xh);
+
+        double J00 = (F_u[0] - F[0]) / h;
+        double J01 = (F_v[0] - F[0]) / h;
+        double J10 = (F_u[1] - F[1]) / h;
+        double J11 = (F_v[1] - F[1]) / h;
+
+        // Solve linear system J * dx = -F
+        double det = J00 * J11 - J01 * J10;
+        if (std::abs(det) < 1e-14) {
+            std::cerr << "Jacobian is singular\n";
+            return x0;
+        }
+
+        double dx0 = (-F[0] * J11 + F[1] * J01) / det;
+        double dx1 = (-F[1] * J00 + F[0] * J10) / det;
+
+        x0[0] += dx0;
+        x0[1] += dx1;
+    }
+
+    std::cerr << "Newton solver did not converge\n";
+    return x0;
+}
+
+// Tie the last two functions together, to solve the system of equations for a phase singularity
+std::array<double, 2> locate_tip_phase(const Parameters& params)
+{
+    auto func = [&](const std::array<double, 2>& x) {
+        return base_equations(x, params);
+        };
+
+    std::array<double, 2> initial_guess = { 1.0, 0.0 };
+    return newton_solve(func, initial_guess);
 }
 
 // Using the phase of the spiral wave, detect the tip of the spiral wave (phase method)
@@ -437,6 +511,12 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
     std::vector<double> tip_traj_phase_x(tip_track_steps);
     std::vector<double> tip_traj_phase_y(tip_track_steps);
 
+    // Set up for phase conversion
+    std::array<double, 2> singularity_phase = locate_tip_phase(params);
+    double u_singularity = singularity_phase[0];
+    double v_singularity = singularity_phase[1];
+    printf("u_sing = %f, v_sing = %f", u_singularity, v_singularity);
+
 
     // For each time step evolve the simulation using the FitzHugh-Nagumo Model
     for(int step = 0; step <= steps; ++step) {
@@ -526,7 +606,7 @@ void evolveFitzHughNagumo(GridData& grid, const Parameters& params, const SimCon
                 double uu = host_u_new.data()[k];
                 double vv = host_v_new.data()[k];
 
-                phase_vals[k] = atan2(vv - params.vtip_pick, uu - params.utip_pick);
+                phase_vals[k] = atan2(vv - v_singularity, uu - u_singularity);
             }
 
             std::pair<int, int>  ij_approx = PhaseTipDetection(phase_vals, grid.width, grid.height);
