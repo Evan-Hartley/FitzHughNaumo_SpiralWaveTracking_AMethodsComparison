@@ -1,4 +1,4 @@
-# FitzHughNaumo_SpiralWaveTracking_AMethodsComparison
+# FitzHugh-Naumo Spiral Wave Tracking: A Methods Comparison
 
 Compare and Contrast the Contour and Phase Identification Methods for Spiral Wave Identification using the FitzHugh-Nagumo Model
 
