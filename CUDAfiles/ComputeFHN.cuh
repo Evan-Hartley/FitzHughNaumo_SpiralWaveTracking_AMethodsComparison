@@ -24,8 +24,8 @@ public:
     GridData& operator=(GridData&& other) noexcept;
 
     int index(int i, int j) const;
-    void copyFromHost(double* h_u, double* h_v);
-    void copyToHost(double* h_u, double* h_v);
+    void copyFromHost(double* h_u, double* h_v) const;
+    void copyToHost(double* h_u, double* h_v) const;
 };
 
 GridData StartSim(GridData& grid, const double u_start, const double v_start);
