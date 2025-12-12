@@ -30,8 +30,8 @@ int main() {
     params.b = 0.5;
     params.last_step = static_cast<int>(simulation.last_time / params.dt);
     params.spiral_time = simulation.spiral_time;
-    params.utip_pick = 0.40;              // User guess for phase singularity's u value
-    params.vtip_pick = 0.07;              // User guess for phase singularity's v value
+    params.utip_pick = 0.158129;              // User guess for phase singularity's u value
+    params.vtip_pick = 0.079064;              // User guess for phase singularity's v value
 
 
     // Check for parameter cohesion
