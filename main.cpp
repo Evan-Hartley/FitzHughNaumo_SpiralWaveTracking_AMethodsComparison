@@ -1,7 +1,7 @@
-#include "FHNpch.h"
+#include "PreCompiledHeader/FHNpch.h"
 
-#include "StructureManagment.h"
-#include "./ComputeFHN.cuh"
+#include "Structures/StructureManagment.h"
+#include "CUDAfiles/ComputeFHN.cuh"
 
 int main() {
 
@@ -57,4 +57,5 @@ int main() {
 
     //End
     return 0;
+
 }
