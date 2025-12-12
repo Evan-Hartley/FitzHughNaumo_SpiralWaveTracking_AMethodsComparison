@@ -21,13 +21,17 @@ This code outputs .bin files for the u and v state values of the FitzHugh-Nagumo
 
 ## Compilation instructions
 
-**Both setup options require CUDA and a GPU**
+**Both compilation options require CUDA and a GPU**
+
+**Preferred Compilation**
 
 If you have ncvv installed run the following command in the repository directory:
 ```
-nvcc main.cpp ComputeFHN.cu FHNpch.cpp -o fhnModel.exe
+nvcc main.cpp CUDAfiles/ComputeFHN.cu PreCompiledHeader/FHNpch.cpp -o fhnModel.exe
 ```
 **-OR-**
+
+**Backup Compilation**
 
 Run the following commands in the `CMakeLocalBuild` directory:
  ```
@@ -36,4 +40,4 @@ cmake ..
 cmake --build .
 ```
  
-The .exe file will then be in a subfolder entitled `FitzHughNagumoModel/run/bin/`
+The .exe file will then be in a subfolder entitled `build/run/`
