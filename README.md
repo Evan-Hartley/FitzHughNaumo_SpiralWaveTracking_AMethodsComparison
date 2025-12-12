@@ -29,7 +29,7 @@ nvcc main.cpp ComputeFHN.cu FHNpch.cpp -o fhnModel.exe
 ```
 **-OR-**
 
-Run the following commands in the repository directory:
+Run the following commands in the `CMakeLocalBuild` directory:
  ```
 mkdir build && cd build
 cmake ..
